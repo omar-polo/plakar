@@ -135,7 +135,7 @@ func main() {
 	for record := range scan {
 		switch record := record.(type) {
 		case importer.ScanError:
-			log.Print("failed to scan:", record.Pathname)
+			log.Printf("failed to scan %v: %v", record.Pathname, record.Err)
 			continue
 		case importer.ScanRecord:
 			path := record.Pathname
