@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"slices"
+	"sync"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -43,6 +44,7 @@ type BTree[K any, P any, V any] struct {
 	Root    P
 	store   Storer[K, P, V]
 	compare func(K, K) int
+	mtx     sync.Mutex
 }
 
 // New returns a new, empty tree.
@@ -182,6 +184,9 @@ func (n *Node[K, P, V]) split() (new *Node[K, P, V]) {
 }
 
 func (b *BTree[K, P, V]) insert(key K, val V, overwrite bool) error {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+
 	node, path, err := b.findleaf(key)
 	if err != nil {
 		return err

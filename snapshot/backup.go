@@ -34,7 +34,6 @@ type BackupContext struct {
 	scanCache      *caching.ScanCache
 
 	erridx   *btree.BTree[string, int, ErrorItem]
-	muerridx sync.Mutex
 }
 
 type BackupOptions struct {
@@ -59,13 +58,10 @@ func (bc *BackupContext) recordEntry(entry *vfs.Entry) error {
 }
 
 func (bc *BackupContext) recordError(path string, err error) error {
-	bc.muerridx.Lock()
-	e := bc.erridx.Insert(path, ErrorItem{
+	return bc.erridx.Insert(path, ErrorItem{
 		Name:  path,
 		Error: err.Error(),
 	})
-	bc.muerridx.Unlock()
-	return e
 }
 
 func (snapshot *Snapshot) skipExcludedPathname(options *BackupOptions, record importer.ScanResult) bool {
@@ -446,9 +442,6 @@ func (snap *Snapshot) Backup(scanDir string, imp importer.Importer, options *Bac
 		}
 
 		childiter := backupCtx.scanCache.EnumerateKeysWithPrefix("__file__:"+prefix, false)
-		if err != nil {
-			continue
-		}
 
 		for relpath, bytes := range childiter {
 			if strings.Contains(relpath, "/") {
