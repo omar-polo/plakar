@@ -34,6 +34,8 @@ type Node[K any, P any, V any] struct {
 	Pointers []P `msgpack:"pointers"`
 	Values   []V `msgpack:"values"`
 	Next     *P  `msgpack:"next,omitempty"`
+
+	latch sync.RWMutex
 }
 
 // BTree implements a B+tree.  K is the type for the key, V for the
@@ -42,6 +44,7 @@ type Node[K any, P any, V any] struct {
 type BTree[K any, P any, V any] struct {
 	Order   int
 	Root    P
+	Count   int
 	store   Storer[K, P, V]
 	compare func(K, K) int
 	mtx     sync.Mutex
@@ -206,6 +209,7 @@ func (b *BTree[K, P, V]) insert(key K, val V, overwrite bool) error {
 
 	node.insertAt(idx, key, val)
 	if len(node.Keys) < b.Order {
+		b.Count++
 		return b.store.Update(ptr, node)
 	}
 
